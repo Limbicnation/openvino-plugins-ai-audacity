@@ -7,15 +7,94 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 OpenVINO AI Plugins for Audacity - a set of AI-enabled audio effects, generators, and analyzers that run 100% locally using Intel's OpenVINO toolkit. The module (`mod-openvino`) integrates into Audacity as a dynamically loaded plugin.
 
 **Features:**
+
 - Music Separation (Demucs v4) - separate tracks into Drums, Bass, Vocals, Other
 - Noise Suppression (DeepFilterNet, DenseUNet)
 - Music Generation (MusicGen LLM)
 - Whisper Transcription (whisper.cpp with OpenVINO backend)
 - Super Resolution (AudioSR)
 
+## Available AI Features
+
+### Effects (Effect Menu)
+
+#### 🎵 OpenVINO Music Separation
+
+Separates a mono/stereo track into individual stems using Demucs v4.
+
+- **Separation Modes:**
+  - **2-Stem** → Instrumental + Vocals
+  - **4-Stem** → Drums + Bass + Other Instruments + Vocals
+- **Options:** Device selection, Shifts (higher = better quality but slower)
+
+#### 🧹 OpenVINO Noise Suppression
+
+Removes background noise from spoken audio.
+
+- **Models:**
+  - `deepfilternet2` (recommended)
+  - `deepfilternet3` (recommended)
+  - `denseunet` (legacy)
+- **Devices:** CPU, GPU, NPU
+
+#### ✨ OpenVINO Super Resolution
+
+Upscales audio to 24kHz bandwidth / 48kHz sample rate using AudioSR diffusion.
+
+- **Models:**
+  - `Basic (General)` - music, environmental sounds
+  - `Speech` - isolated speech
+- **Options:** Chunk size, Steps, Guidance Scale, Seed
+
+---
+
+### Generators (Generate Menu)
+
+#### 🎶 OpenVINO Music Generation
+
+Text-to-music generation using MusicGen LLM. Also supports audio continuation.
+
+- **Models:**
+  - `musicgen-small` (mono, 32kHz)
+  - `musicgen-stereo-small` (stereo, 32kHz)
+  - fp16 (higher quality) or int8 (faster, less memory)
+- **Features:**
+  - Text prompt → music generation
+  - Audio continuation (extend existing audio)
+- **Options:** Duration, Seed, Guidance Scale, TopK, Context Length
+
+---
+
+### Analyzers (Analyze Menu)
+
+#### 🎤 OpenVINO Whisper Transcription
+
+Speech-to-text transcription/translation using whisper.cpp with OpenVINO backend.
+
+- **Models:** base, small, small.en-tdrz (diarization), medium, large-v1/v2/v3
+- **Modes:**
+  - `transcribe` - output in source language
+  - `translate` - output in English
+- **Options:** Source language (auto-detect or explicit), Initial prompt, Max segment length, Beam size
+
+---
+
+### Device Support
+
+All features support OpenVINO device selection:
+
+- **CPU** - Always available
+- **GPU** - Intel/discrete GPUs via OpenCL
+- **NPU** - Intel Neural Processing Units (where available)
+
+### Models Location
+
+Models must be installed in `/usr/local/lib/openvino-models/`
+
 ## Build Commands (Linux/Ubuntu 22.04)
 
 ### Prerequisites Setup
+
 ```bash
 # Install system dependencies
 sudo apt install build-essential cmake git python3-pip ocl-icd-opencl-dev git-lfs
@@ -31,6 +110,7 @@ export LIBTORCH_ROOTDIR=/path/to/libtorch
 ```
 
 ### Build whisper.cpp (dependency)
+
 ```bash
 git clone https://github.com/ggerganov/whisper.cpp && cd whisper.cpp
 git checkout v1.5.4
@@ -43,6 +123,7 @@ export LD_LIBRARY_PATH=${WHISPERCPP_ROOTDIR}/lib:$LD_LIBRARY_PATH
 ```
 
 ### Build Audacity with mod-openvino
+
 ```bash
 # Clone Audacity
 git clone https://github.com/audacity/audacity.git
@@ -61,6 +142,7 @@ make -j$(nproc)
 ```
 
 ### Running
+
 ```bash
 ./Release/bin/audacity
 # Go to Edit -> Preferences -> Modules -> Set mod-openvino to "Enabled" -> Restart
@@ -69,6 +151,7 @@ make -j$(nproc)
 ## Architecture
 
 ### Module Structure (`mod-openvino/`)
+
 - `OpenVINO.cpp` - Module entry point, defines version check and dispatch
 - `OV*.cpp/h` - Audacity effect implementations inheriting from `StatefulEffect`
   - `OVMusicSeparation` - Demucs-based stem separation
@@ -79,17 +162,20 @@ make -j$(nproc)
 - `htdemucs.cpp/h` - HTDemucs model wrapper for music separation
 
 ### AI Pipeline Implementations
+
 - `musicgen/` - MusicGen LLM pipeline (ported from HuggingFace transformers)
 - `noise_suppression/deepfilternet/` - DeepFilterNet2/3 pipeline
 - `audio_sr/` - AudioSR latent diffusion pipeline
 
 ### Dependencies (via CMake)
+
 - OpenVINO Runtime - AI model inference
 - Libtorch - Tensor operations for ported PyTorch pipelines
 - whisper.cpp - Transcription backend
 - OpenCL - GPU memory interoperability
 
 ### Models Location
+
 Models must be placed in `/usr/local/lib/openvino-models/`. See `doc/build_doc/linux/README.md` for download commands.
 
 ## Development Conventions
